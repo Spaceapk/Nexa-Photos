@@ -85,6 +85,15 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Miniaturas (imágenes y fotogramas de video) con caché en memoria y disco.
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil-video:2.7.0")
+
+    // Reproducción local de video en el visor (sin red).
+    val media3Version = "1.4.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 

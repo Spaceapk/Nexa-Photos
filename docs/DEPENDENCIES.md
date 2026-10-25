@@ -27,6 +27,7 @@ y no requieren servicios de Google, cuentas ni claves. Ninguna añade permiso de
 | Dependencia | Versión | Licencia | Uso y justificación |
 |---|---|---|---|
 | `io.coil-kt:coil-compose` | 2.7.0 | Apache-2.0 | Miniaturas asíncronas con caché en memoria y disco para la cuadrícula. Evita escribir un cargador de miniaturas propio y ya respeta `ContentResolver` de MediaStore. |
+| `io.coil-kt:coil-video` | 2.7.0 | Apache-2.0 | Decodifica un fotograma de los videos locales para usarlo como miniatura en la cuadrícula. Sin este decodificador Coil solo podría mostrar imágenes. |
 | `androidx.media3:media3-exoplayer` | 1.4.1 | Apache-2.0 | Reproducción local de video dentro del visor (sin red, sin módulos de streaming). |
 | `androidx.media3:media3-ui` | 1.4.1 | Apache-2.0 | `PlayerView` con controles accesibles para el reproductor. |
 

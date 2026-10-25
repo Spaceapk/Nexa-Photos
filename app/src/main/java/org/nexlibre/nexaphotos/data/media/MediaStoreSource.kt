@@ -42,7 +42,8 @@ data class RawAlbumRow(
     val bucketId: String,
     val bucketName: String,
     val itemCount: Int,
-    val coverUri: String?
+    val coverUri: String?,
+    val latestDateMillis: Long = 0L
 )
 
 /** Resultado crudo de una página: las filas y el cursor para continuar. */
