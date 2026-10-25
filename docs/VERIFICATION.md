@@ -31,7 +31,7 @@ El APK queda en `app/build/outputs/apk/debug/app-debug.apk` y se puede instalar 
 
 En esa última ejecución se comprobó con `aapt2 dump badging`: `package: name='org.nexlibre.nexaphotos'`,
 `versionName='0.1.0'`, `versionCode='1'`, y el APK quedó publicado como artefacto
-`Nexa-Photos-debug-2`.
+`Nexa-Photos-debug-4` (18,6 MB).
 
 ## Comprobación manual del APK
 
