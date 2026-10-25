@@ -58,6 +58,30 @@ jobs:
           set -o pipefail
           ./gradlew --no-daemon --stacktrace --console=plain assembleDebug 2>&1 | tee -a /tmp/build.log
 
+      - name: Summarize unit tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY' > /tmp/test-summary.txt
+          import glob, xml.etree.ElementTree as ET
+          files = sorted(glob.glob('app/build/test-results/testDebugUnitTest/*.xml'))
+          total = failures = errors = skipped = 0
+          per_class = []
+          for path in files:
+              root = ET.parse(path).getroot()
+              t = int(root.get('tests', 0)); f = int(root.get('failures', 0))
+              e = int(root.get('errors', 0)); s = int(root.get('skipped', 0))
+              total += t; failures += f; errors += e; skipped += s
+              per_class.append(f"{root.get('name')}: {t} ({f} fallos, {e} errores)")
+          print(f"Clases de prueba: {len(files)}")
+          for line in per_class:
+              print(f"  - {line}")
+          print(f"TOTAL: {total} pruebas, {failures} fallos, {errors} errores, {skipped} omitidas")
+          PY
+          cat /tmp/test-summary.txt
+          cat /tmp/test-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TOTAL: 0 pruebas" /tmp/test-summary.txt && { echo "::error::No se ejecutaron pruebas"; exit 1; } || true
+
       - name: Verify APK identity
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk

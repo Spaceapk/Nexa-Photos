@@ -30,10 +30,20 @@ El APK queda en `app/build/outputs/apk/debug/app-debug.apk` y se puede instalar 
 | 2026-10-25 | `4d8b16c` (capa multimedia) | [run 40211647882](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40211647882) | ✅ pruebas, lint, `assembleDebug` y verificación de identidad del APK |
 | 2026-10-25 | `dbab2f6` (HEAD del PR) | [run 40212686916](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40212686916) | ✅ |
 | 2026-10-25 | `ff88458` (revisión visual) | [run 40237687582](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40237687582) | ✅ incluye `PaletteContrastTest` y `VisualRulesTest` |
+| 2026-10-25 | `3adbab3` (HEAD previo del PR) | [run 40238118738](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40238118738) | ✅ |
+| 2026-10-25 | `d040636` (permisos por tipo, paginación, álbumes, zoom, Apache-2.0) | [run 40239222323](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40239222323) | ✅ pruebas, lint, `assembleDebug`, identidad del APK |
 
 En esa última ejecución se comprobó con `aapt2 dump badging`: `package: name='org.nexlibre.nexaphotos'`,
 `versionName='0.1.0'`, `versionCode='1'`, y el APK quedó publicado como artefacto
 `Nexa-Photos-debug-13` (18,7 MB).
+
+## Pruebas unitarias
+
+El workflow resume los resultados en el paso `Summarize unit tests` y en el *summary* de la
+ejecución (clases, pruebas por clase y total). Cubre, entre otras: cursor de paginación, consultas
+MediaStore, integridad de páginas con fechas nulas/cero/negativas, permisos por tipo (incluido el
+caso mixto de Android 14+), repositorio, estado del ViewModel, agrupación por día, conteos de álbum
+truncados, compartir, zoom acotado y contraste de las cuatro paletas.
 
 ## Comprobación manual del APK
 

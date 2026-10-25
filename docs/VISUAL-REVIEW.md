@@ -24,6 +24,14 @@ visuales y semántica sobre las mismas pantallas, y ambos estilos siguen compart
 | Respetar la escala de animación del sistema | No se añadió ninguna lectura manual de ajustes globales (`Settings.Global.ANIMATOR_DURATION_SCALE`). Las únicas animaciones propias eran crossfades; el resto son del sistema/Compose y respetan la escala. |
 | No añadir "Eliminar" al visor | El visor sigue teniendo solo cerrar, favorito y compartir. No existe ninguna operación destructiva en el código. |
 
+### Segunda pasada (revisión del 25/10, posterior a la primera)
+
+| Punto | Cambio |
+|---|---|
+| Permisos honestos por tipo | El aviso de la galería explica qué tipo falta ("Falta el permiso de videos: solo se muestran fotos") y ofrece el botón que pide **solo** lo que falta. Con un tipo completo y otro parcial también se avisa. El estado vacío y la etiqueta de la sección dejan de prometer "Fotos y videos" cuando no hay permiso para ambos. |
+| Conteos de álbum | Con más de 100 000 filas se muestra "N+ elementos" y TalkBack dice "al menos N elementos"; nunca un total exacto falso. |
+| Zoom accesible | Acciones personalizadas "Acercar", "Alejar" y "Restablecer zoom" para TalkBack, además del doble toque; el desplazamiento se acota al margen real de la imagen. |
+
 ## Descartado (y por qué)
 
 | Recomendación | Motivo |
