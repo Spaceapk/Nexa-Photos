@@ -53,7 +53,8 @@ MediaStore, acceso parcial en Android 14+ y reproducción con códecs concretos.
 La integración continua (`.github/workflows/android.yml`) ejecuta pruebas unitarias, lint y
 `assembleDebug`, verifica `applicationId`/`versionName` y publica el APK como artefacto.
 
-La documentación de dependencias está en [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) y la
+La revisión visual y de accesibilidad (qué se aplicó, qué se descartó y los contrastes medidos)
+está en [`docs/VISUAL-REVIEW.md`](docs/VISUAL-REVIEW.md). La documentación de dependencias está en [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) y la
 verificación en [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 ## Licencia

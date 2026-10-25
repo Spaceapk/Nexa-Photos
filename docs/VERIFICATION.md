@@ -28,10 +28,12 @@ El APK queda en `app/build/outputs/apk/debug/app-debug.apk` y se puede instalar 
 |---|---|---|---|
 | 2026-10-25 | `a5c9367` (fundación) | [run 40210757079](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40210757079) | ✅ pruebas, lint y APK |
 | 2026-10-25 | `4d8b16c` (capa multimedia) | [run 40211647882](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40211647882) | ✅ pruebas, lint, `assembleDebug` y verificación de identidad del APK |
+| 2026-10-25 | `dbab2f6` (HEAD del PR) | [run 40212686916](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40212686916) | ✅ |
+| 2026-10-25 | `ff88458` (revisión visual) | [run 40237687582](https://github.com/Spaceapk/Nexa-Photos/actions/runs/40237687582) | ✅ incluye `PaletteContrastTest` y `VisualRulesTest` |
 
 En esa última ejecución se comprobó con `aapt2 dump badging`: `package: name='org.nexlibre.nexaphotos'`,
 `versionName='0.1.0'`, `versionCode='1'`, y el APK quedó publicado como artefacto
-`Nexa-Photos-debug-4` (18,6 MB).
+`Nexa-Photos-debug-13` (18,7 MB).
 
 ## Comprobación manual del APK
 
