@@ -199,18 +199,25 @@ fun NexaPhotosTheme(
 ) {
     val context = LocalContext.current
     val isDark = resolveIsDark(settings.appearanceMode, isSystemInDarkTheme())
-    val useDynamic = resolveUseDynamicColors(settings.uiStyle, settings.useDynamicColors, Build.VERSION.SDK_INT)
+    val useDynamic = resolveUseDynamicColors(
+        style = settings.uiStyle,
+        requested = settings.useDynamicColors,
+        sdkInt = Build.VERSION.SDK_INT
+    )
+    // La comprobación explícita de versión se repite junto a las llamadas para que la auditoría
+    // de API de lint pueda verificarla (la regla pura no es visible para el analizador).
+    val dynamicAvailable = useDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     val baseScheme = when {
-        useDynamic && isDark -> dynamicDarkColorScheme(context)
-        useDynamic -> dynamicLightColorScheme(context)
+        dynamicAvailable && isDark -> dynamicDarkColorScheme(context)
+        dynamicAvailable -> dynamicLightColorScheme(context)
         settings.uiStyle == UiStyle.IOS -> if (isDark) NexaPalettes.IosDark else NexaPalettes.IosLight
         else -> if (isDark) NexaPalettes.GoogleDark else NexaPalettes.GoogleLight
     }
 
     // Aunque los colores sean dinámicos, en modo oscuro los fondos se fuerzan a negro AMOLED y el
     // resto de superficies a gris neutro, como el resto del sistema visual de la app.
-    val colorScheme = if (useDynamic && isDark) {
+    val colorScheme = if (dynamicAvailable && isDark) {
         baseScheme.copy(
             background = NexaPalettes.AmoledBlack,
             surface = NexaPalettes.AmoledBlack,
