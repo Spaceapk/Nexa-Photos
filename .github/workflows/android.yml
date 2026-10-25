@@ -1,0 +1,123 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+# Permisos mínimos: solo lectura del repositorio. El workflow no escribe comentarios, releases
+# ni etiquetas; la subida de artefactos la gestiona el propio servicio de Actions.
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Unit tests, lint and debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;34.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace --console=plain testDebugUnitTest 2>&1 | tee /tmp/build.log
+
+      - name: Lint
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace --console=plain lintDebug 2>&1 | tee -a /tmp/build.log
+
+      - name: Assemble debug APK
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace --console=plain assembleDebug 2>&1 | tee -a /tmp/build.log
+
+      - name: Summarize unit tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY' > /tmp/test-summary.txt
+          import glob, xml.etree.ElementTree as ET
+          files = sorted(glob.glob('app/build/test-results/testDebugUnitTest/*.xml'))
+          total = failures = errors = skipped = 0
+          per_class = []
+          for path in files:
+              root = ET.parse(path).getroot()
+              t = int(root.get('tests', 0)); f = int(root.get('failures', 0))
+              e = int(root.get('errors', 0)); s = int(root.get('skipped', 0))
+              total += t; failures += f; errors += e; skipped += s
+              per_class.append(f"{root.get('name')}: {t} ({f} fallos, {e} errores)")
+          print(f"Clases de prueba: {len(files)}")
+          for line in per_class:
+              print(f"  - {line}")
+          print(f"TOTAL: {total} pruebas, {failures} fallos, {errors} errores, {skipped} omitidas")
+          PY
+          cat /tmp/test-summary.txt
+          cat /tmp/test-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TOTAL: 0 pruebas" /tmp/test-summary.txt && { echo "::error::No se ejecutaron pruebas"; exit 1; } || true
+
+      - name: Verify APK identity
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK" || { echo "::error::No se generó el APK debug"; exit 1; }
+          AAPT2="$ANDROID_HOME/build-tools/34.0.0/aapt2"
+          "$AAPT2" dump badging "$APK" | tee badging.txt
+          grep -q "package: name='org.nexlibre.nexaphotos'" badging.txt || { echo "::error::applicationId inesperado"; exit 1; }
+          grep -q "versionName='0.1.0'" badging.txt || { echo "::error::versionName inesperado"; exit 1; }
+          echo "APK debug verificado: org.nexlibre.nexaphotos 0.1.0"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexa-Photos-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # El log se publica como artefacto (sin permisos de escritura en el repositorio) y las
+      # últimas líneas se anotan en el propio paso para que el fallo se vea en la pestaña Actions.
+      - name: Publish build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f /tmp/build.log ]; then
+            echo "::error title=Falló Android CI::$(grep -E '^(e: )|FAILED|Execution failed|Caused by:|What went wrong' /tmp/build.log | tail -n 5 | tr '\n' ' ')"
+          fi
+
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-reports-${{ github.run_number }}
+          path: |
+            app/build/reports/
+            app/build/test-results/
+            /tmp/build.log
+          if-no-files-found: warn
+          retention-days: 14

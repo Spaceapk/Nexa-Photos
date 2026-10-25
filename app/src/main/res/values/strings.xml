@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nexa Photos</string>
+    <string name="photos_label">Fotos</string>
+    <string name="videos_label">Videos</string>
+    <string name="albums_label">Álbumes</string>
+    <string name="favorites_label">Favoritos</string>
+    <string name="search_label">Buscar</string>
+</resources>
