@@ -95,7 +95,10 @@ class MediaStoreMediaRepository(
         val normalized = uris.map { MediaUris.normalize(it) }.filter { it.isNotEmpty() }.distinct()
         if (normalized.isEmpty()) return emptyList()
         val favoriteUris = favorites.favoriteUris.first()
-        return source.fetchByUris(normalized).map { it.toDomain(isFavorite = it.contentUri in favoriteUris) }
+        // El orden solicitado se garantiza aquí, sin depender del proveedor.
+        val byUri = source.fetchByUris(normalized).associateBy { MediaUris.normalize(it.contentUri) }
+        return normalized.mapNotNull { byUri[it] }
+            .map { it.toDomain(isFavorite = it.contentUri in favoriteUris) }
     }
 
     override suspend fun stats(): LibraryStats {

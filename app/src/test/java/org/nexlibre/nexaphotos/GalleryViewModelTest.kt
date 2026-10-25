@@ -206,11 +206,13 @@ class GalleryViewModelTest {
         val viewModel = createViewModel(source)
         advanceUntilIdle()
 
+        val expectedAtOne = viewModel.state.value.displayItems[1].uri
+
         viewModel.openViewer(1)
         val viewer = viewModel.state.value.viewer
         assertNotNull(viewer)
         assertEquals(1, viewer?.index)
-        assertEquals(listOf(mediaItem(2).uri), viewModel.shareItems().map { it.uri })
+        assertEquals(listOf(expectedAtOne), viewModel.shareItems().map { it.uri })
 
         viewModel.toggleSelection(mediaItem(1).uri)
         assertEquals(listOf(mediaItem(1).uri), viewModel.shareItems().map { it.uri })
