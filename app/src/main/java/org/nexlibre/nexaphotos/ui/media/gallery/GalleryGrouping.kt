@@ -49,6 +49,35 @@ fun formatDayLabel(
     }
 }
 
+private val itemDateFormatter: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+
+/** Fecha localizada corta de un elemento (para descripciones de accesibilidad y hojas de detalle). */
+fun formatItemDate(
+    millis: Long,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    locale: Locale = Locale.getDefault()
+): String = itemDateFormatter
+    .withLocale(locale)
+    .format(Instant.ofEpochMilli(millis).atZone(zoneId).toLocalDate())
+
+/**
+ * Descripción para TalkBack de una miniatura: tipo, duración si es video, fecha y estado.
+ * No depende del color ni del overlay para transmitir la selección.
+ */
+fun describeMediaItem(
+    item: MediaItem,
+    isSelected: Boolean = false,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    locale: Locale = Locale.getDefault()
+): String {
+    val parts = mutableListOf(if (item.isVideo) "Video" else "Foto")
+    if (item.isVideo) formatDuration(item.durationMillis).takeIf { it.isNotEmpty() }?.let(parts::add)
+    parts += formatItemDate(item.dateTakenMillis, zoneId, locale)
+    if (item.isFavorite) parts += "favorito"
+    if (isSelected) parts += "seleccionado"
+    return parts.joinToString(", ")
+}
+
 /** Duración legible para la insignia de los videos. */
 fun formatDuration(durationMillis: Long): String {
     if (durationMillis <= 0L) return ""

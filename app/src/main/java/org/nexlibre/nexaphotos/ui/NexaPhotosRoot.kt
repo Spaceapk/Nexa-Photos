@@ -23,12 +23,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import org.nexlibre.nexaphotos.domain.model.AppearanceMode
 import org.nexlibre.nexaphotos.domain.model.UiStyle
 import org.nexlibre.nexaphotos.domain.model.UserSettings
@@ -47,6 +52,7 @@ fun NexaPhotosRoot(
     settings: UserSettings,
     onUiStyleChange: (UiStyle) -> Unit,
     onAppearanceChange: (AppearanceMode) -> Unit,
+    onDynamicColorsChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     galleryViewModel: GalleryViewModel = viewModel(factory = GalleryViewModel.Factory)
 ) {
@@ -122,26 +128,38 @@ fun NexaPhotosRoot(
             settings = settings,
             onUiStyleChange = onUiStyleChange,
             onAppearanceChange = onAppearanceChange,
+            onDynamicColorsChange = onDynamicColorsChange,
             onDismiss = { showAppearance = false }
         )
     }
 }
 
-/** Selector de tema compartido por ambos estilos visuales. */
+/**
+ * Selector de tema compartido por ambos estilos visuales.
+ *
+ * Los controles se apilan y la columna es desplazable para que sigan siendo utilizables con el
+ * texto ampliado hasta el 200 %. Los colores dinámicos solo se ofrecen en Google Expressive y
+ * desde Android 12 (API 31); en iOS Classic la paleta es siempre estática.
+ */
 @Composable
 private fun AppearanceDialog(
     settings: UserSettings,
     onUiStyleChange: (UiStyle) -> Unit,
     onAppearanceChange: (AppearanceMode) -> Unit,
+    onDynamicColorsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val supportsDynamic = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Apariencia") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Estilo", style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DialogSectionTitle("Estilo")
+                DialogChipRow {
                     FilterChip(
                         selected = settings.uiStyle == UiStyle.GOOGLE,
                         onClick = { onUiStyleChange(UiStyle.GOOGLE) },
@@ -153,8 +171,9 @@ private fun AppearanceDialog(
                         label = { Text("iOS Classic") }
                     )
                 }
-                Text("Modo", style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                DialogSectionTitle("Modo")
+                DialogChipRow {
                     AppearanceMode.entries.forEach { mode ->
                         FilterChip(
                             selected = settings.appearanceMode == mode,
@@ -171,10 +190,49 @@ private fun AppearanceDialog(
                         )
                     }
                 }
+
+                if (supportsDynamic && settings.uiStyle == UiStyle.GOOGLE) {
+                    DialogSectionTitle("Color")
+                    DialogChipRow {
+                        FilterChip(
+                            selected = settings.useDynamicColors,
+                            onClick = { onDynamicColorsChange(!settings.useDynamicColors) },
+                            label = { Text("Colores dinámicos") }
+                        )
+                    }
+                    Text(
+                        text = "Colores del fondo de pantalla. En modo oscuro los fondos siguen siendo negros.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Listo") }
         }
+    )
+}
+
+@Composable
+private fun DialogSectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .semantics { heading() }
+    )
+}
+
+/**
+ * Fila de controles que se apila cuando no cabe en una sola línea (texto ampliado).
+ * Usa dos filas como máximo: los grupos son de 2-3 elementos cortos.
+ */
+@Composable
+private fun DialogChipRow(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        content = content
     )
 }

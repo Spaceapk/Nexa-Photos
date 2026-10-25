@@ -1,7 +1,9 @@
 package org.nexlibre.nexaphotos.ui.media.gallery
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.ImageLoader
@@ -158,17 +165,42 @@ private fun MediaCell(
     onLongClick: () -> Unit
 ) {
     val tokens = LocalNexaPhotosTokens.current
+    val zoneId = remember { ZoneId.systemDefault() }
+    // Descripción completa para TalkBack: la selección y el favorito se anuncian como estado,
+    // no solo con color.
+    val description = remember(item, selected, zoneId) {
+        describeMediaItem(item = item, isSelected = selected, zoneId = zoneId)
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(tokens.thumbnailCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .then(
+                if (selected) {
+                    Modifier.border(
+                        border = BorderStroke(3.dp, tokens.selectionBorderColor),
+                        shape = RoundedCornerShape(tokens.thumbnailCornerRadius)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+                if (selectionActive) {
+                    this.selected = selected
+                    stateDescription = if (selected) "Seleccionado" else "No seleccionado"
+                }
+            }
+            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
     ) {
         AsyncImage(
             model = item.uri,
             imageLoader = imageLoader,
-            contentDescription = item.name,
+            // La descripción la aporta el contenedor para no duplicarla en TalkBack.
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
@@ -183,7 +215,7 @@ private fun MediaCell(
             )
             Icon(
                 imageVector = if (selected) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                contentDescription = if (selected) "Seleccionado" else "No seleccionado",
+                contentDescription = null,
                 tint = if (selected) MaterialTheme.colorScheme.primary else Color.White,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -192,7 +224,7 @@ private fun MediaCell(
         } else if (item.isFavorite) {
             Icon(
                 imageVector = Icons.Filled.Favorite,
-                contentDescription = "Favorito",
+                contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -257,13 +289,20 @@ fun AlbumGrid(
                 modifier = Modifier
                     .clip(RoundedCornerShape(tokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .combinedClickable(onClick = { onAlbumClick(album) }, onLongClick = {})
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "${album.name}, ${album.itemCount} elementos"
+                    }
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClick = { onAlbumClick(album) },
+                        onLongClick = {}
+                    )
             ) {
                 Column {
                     AsyncImage(
                         model = album.coverUri,
                         imageLoader = imageLoader,
-                        contentDescription = album.name,
+                        contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()

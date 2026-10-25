@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -43,7 +47,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.ImageLoader
 import org.nexlibre.nexaphotos.data.permissions.MediaAccess
@@ -129,12 +136,16 @@ fun GalleryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .heightIn(min = 56.dp)
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = if (state.selection.count == 1) "1 seleccionado" else "${state.selection.count} seleccionados",
-                            style = MaterialTheme.typography.titleSmall
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(8.dp))
                         if (selectedItems.size == 1) {
@@ -146,7 +157,6 @@ fun GalleryScreen(
                                 )
                             }
                         }
-                        Spacer(Modifier.weight(1f))
                         FilledTonalButton(onClick = onShareSelection) {
                             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
@@ -205,7 +215,16 @@ fun GalleryScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         when {
                             state.isLoading && state.displayItems.isEmpty() -> {
-                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .semantics { contentDescription = "Cargando biblioteca" },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    CircularProgressIndicator()
+                                    Text("Cargando…", style = MaterialTheme.typography.bodyMedium)
+                                }
                             }
 
                             state.displayItems.isEmpty() -> EmptyState(
@@ -235,9 +254,11 @@ private fun SectionChips(
     section: GallerySection,
     onSectionChange: (GallerySection) -> Unit
 ) {
+    // Desplazable en horizontal: con texto al 200 % las etiquetas no se recortan ni se apilan.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -344,6 +365,7 @@ private fun EmptyState(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(32.dp),
         contentAlignment = Alignment.Center
     ) {

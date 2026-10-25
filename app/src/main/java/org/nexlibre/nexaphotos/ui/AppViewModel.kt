@@ -35,6 +35,11 @@ class AppViewModel(
         viewModelScope.launch { settingsDataStore.setAppearanceMode(mode) }
     }
 
+    /** Solo tiene efecto en Google Expressive y desde Android 12 (lo decide el tema). */
+    fun setDynamicColors(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.setDynamicColors(enabled) }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

@@ -12,6 +12,10 @@ import coil.decode.VideoFrameDecoder
  *
  * Las miniaturas se leen directamente de los URI de MediaStore (nunca se copian archivos) y se
  * cachean en memoria y disco por Coil.
+ *
+ * Sin `crossfade`: en listas largas la animación se repite en cada celda y en cada reutilización,
+ * lo que castiga a los móviles modestos durante el desplazamiento. La carga se indica con el
+ * marcador estático de cada celda.
  */
 @Composable
 fun rememberGalleryImageLoader(): ImageLoader {
@@ -19,7 +23,7 @@ fun rememberGalleryImageLoader(): ImageLoader {
     return remember(context) {
         ImageLoader.Builder(context)
             .components { add(VideoFrameDecoder.Factory()) }
-            .crossfade(true)
+            .crossfade(false)
             .build()
     }
 }

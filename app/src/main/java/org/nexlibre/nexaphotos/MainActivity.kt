@@ -22,7 +22,8 @@ class MainActivity : ComponentActivity() {
                 NexaPhotosRoot(
                     settings = settings,
                     onUiStyleChange = appViewModel::setUiStyle,
-                    onAppearanceChange = appViewModel::setAppearanceMode
+                    onAppearanceChange = appViewModel::setAppearanceMode,
+                    onDynamicColorsChange = appViewModel::setDynamicColors
                 )
             }
         }
