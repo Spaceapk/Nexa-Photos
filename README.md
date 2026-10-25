@@ -31,6 +31,18 @@ app/src/main/java/org/nexlibre/nexaphotos/
 └── NexaPhotosApplication.kt
 ```
 
+## Estado 0.1.0
+
+- Lectura paginada de fotos y videos desde MediaStore (cursor cronológico, fuera del hilo principal).
+- Permisos por versión de Android, incluido el acceso parcial de Android 14+ y el estado sin permiso.
+- Cuadrícula cronológica con cabeceras por día y carga incremental; álbumes/carpetas y búsqueda local.
+- Selección múltiple y compartir con `ACTION_SEND` / `ACTION_SEND_MULTIPLE` (lectura temporal).
+- Visor con zoom por gestos y reproducción local de video con Media3.
+- Favoritos persistidos en Room mediante `FavoriteRepository` (setter idempotente).
+
+Pendiente de verificación en dispositivo (`docs/DEVICE-TESTS.md`): comportamiento real de
+MediaStore, acceso parcial en Android 14+ y reproducción con códecs concretos.
+
 ## Compilar
 
 ```bash
