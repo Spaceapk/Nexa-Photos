@@ -43,7 +43,9 @@ data class RawAlbumRow(
     val bucketName: String,
     val itemCount: Int,
     val coverUri: String?,
-    val latestDateMillis: Long = 0L
+    val latestDateMillis: Long = 0L,
+    /** `false` si el conteo se truncó (tope de escaneo): no debe presentarse como total. */
+    val countIsExact: Boolean = true
 )
 
 /** Resultado crudo de una página: las filas y el cursor para continuar. */

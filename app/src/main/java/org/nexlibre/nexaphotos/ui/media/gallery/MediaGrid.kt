@@ -290,7 +290,7 @@ fun AlbumGrid(
                     .clip(RoundedCornerShape(tokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .semantics(mergeDescendants = true) {
-                        contentDescription = "${album.name}, ${album.itemCount} elementos"
+                        contentDescription = albumCountDescription(album)
                     }
                     .combinedClickable(
                         role = Role.Button,
@@ -316,7 +316,7 @@ fun AlbumGrid(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${album.itemCount} elementos",
+                            text = albumCountLabel(album),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

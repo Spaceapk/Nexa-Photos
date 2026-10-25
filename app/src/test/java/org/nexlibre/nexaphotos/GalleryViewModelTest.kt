@@ -16,6 +16,7 @@ import org.junit.Before
 import org.junit.Test
 import org.nexlibre.nexaphotos.data.media.MediaStoreMediaRepository
 import org.nexlibre.nexaphotos.data.permissions.MediaAccess
+import org.nexlibre.nexaphotos.data.permissions.MediaTypeAccess
 import org.nexlibre.nexaphotos.domain.model.MediaAlbum
 import org.nexlibre.nexaphotos.domain.model.MediaType
 import org.nexlibre.nexaphotos.ui.media.gallery.GallerySection
@@ -51,7 +52,7 @@ class GalleryViewModelTest {
         val source = FakeMediaStoreSource(rows = listOf(rawMediaRow(id = 1)))
         val viewModel = createViewModel(
             source,
-            checker = FakePermissionChecker(currentAccess = MediaAccess.NONE, currentTypes = emptySet())
+            checker = FakePermissionChecker.none()
         )
 
         advanceUntilIdle()
@@ -222,15 +223,57 @@ class GalleryViewModelTest {
     }
 
     @Test
+    fun `solo fotos no se presenta como acceso completo y videos queda como tipo ausente`() = runTest {
+        val source = FakeMediaStoreSource(
+            rows = listOf(rawMediaRow(id = 1), rawMediaRow(id = 2, type = MediaType.VIDEO))
+        )
+        val viewModel = createViewModel(source, checker = FakePermissionChecker.imagesOnly())
+
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(MediaAccess.PARTIAL, state.access)
+        assertEquals(MediaTypeAccess.FULL, state.typeAccess.images)
+        assertEquals(MediaTypeAccess.NONE, state.typeAccess.videos)
+        assertEquals(setOf(MediaType.VIDEO), state.missingTypes)
+        assertTrue(state.hasMissingTypes)
+        assertFalse(state.needsPermission)
+        // Solo se consultan las fotos; los videos no se mezclan silenciosamente.
+        assertEquals(setOf(MediaType.IMAGE), source.lastQuery?.types)
+        assertEquals(listOf(mediaItem(1).uri), state.items.map { it.uri })
+        assertTrue(viewModel.canRequestMoreAccess())
+        assertTrue(viewModel.missingPermissions().contains("android.permission.READ_MEDIA_VIDEO"))
+    }
+
+    @Test
+    fun `fotos completas y videos seleccionados se informan por separado`() = runTest {
+        val source = FakeMediaStoreSource(rows = listOf(rawMediaRow(id = 1)))
+        val checker = FakePermissionChecker(
+            sdkInt = 34,
+            currentState = org.nexlibre.nexaphotos.data.permissions.MediaAccessState(
+                images = MediaTypeAccess.FULL,
+                videos = MediaTypeAccess.PARTIAL
+            )
+        )
+        val viewModel = createViewModel(source, checker = checker)
+
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(MediaAccess.PARTIAL, state.access)
+        assertEquals(setOf(MediaType.VIDEO), state.typeAccess.partialTypes)
+        assertTrue(state.hasPartialAccess)
+        assertTrue(state.missingTypes.isEmpty())
+        assertEquals(MediaType.ALL, state.readableTypes)
+        assertTrue(viewModel.canRequestMoreAccess())
+    }
+
+    @Test
     fun `el acceso parcial se refleja en el estado`() = runTest {
         val source = FakeMediaStoreSource(rows = listOf(rawMediaRow(id = 1, type = MediaType.VIDEO)))
         val viewModel = createViewModel(
             source,
-            checker = FakePermissionChecker(
-                sdkInt = 34,
-                currentAccess = MediaAccess.PARTIAL,
-                currentTypes = MediaType.ALL
-            )
+            checker = FakePermissionChecker.partialBoth()
         )
 
         advanceUntilIdle()

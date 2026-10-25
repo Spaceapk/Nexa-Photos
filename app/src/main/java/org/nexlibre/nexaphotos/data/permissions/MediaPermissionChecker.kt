@@ -9,9 +9,21 @@ import org.nexlibre.nexaphotos.domain.model.MediaType
 /** Lectura del estado de permisos; abstraído para poder simularlo en pruebas de ViewModel. */
 interface MediaPermissionChecker {
     val sdkInt: Int
-    fun access(): MediaAccess
-    fun readableTypes(): Set<MediaType>
-    fun requiredPermissions(): Array<String> = MediaPermissionRules.requiredPermissions(sdkInt).toTypedArray()
+
+    /** Acceso por tipo (fotos y videos se resuelven por separado). */
+    fun accessState(): MediaAccessState
+
+    /** Nivel agregado; se deriva de [accessState] para no tener dos fuentes de verdad. */
+    fun access(): MediaAccess = accessState().overall
+
+    fun readableTypes(): Set<MediaType> = accessState().readableTypes
+
+    fun requiredPermissions(): Array<String> =
+        MediaPermissionRules.requiredPermissions(sdkInt).toTypedArray()
+
+    /** Permisos que faltan para completar el acceso actual. */
+    fun missingPermissions(): Array<String> =
+        MediaPermissionRules.missingPermissions(sdkInt, accessState()).toTypedArray()
 }
 
 /** Implementación real con [ContextCompat.checkSelfPermission]. */
@@ -21,11 +33,8 @@ class AndroidMediaPermissionChecker(context: Context) : MediaPermissionChecker {
 
     override val sdkInt: Int get() = Build.VERSION.SDK_INT
 
-    override fun access(): MediaAccess =
-        MediaPermissionRules.resolveAccess(sdkInt, grantedPermissions())
-
-    override fun readableTypes(): Set<MediaType> =
-        MediaPermissionRules.readableTypes(sdkInt, grantedPermissions())
+    override fun accessState(): MediaAccessState =
+        MediaPermissionRules.accessState(sdkInt, grantedPermissions())
 
     private fun grantedPermissions(): Set<String> =
         MediaPermissionRules.requiredPermissions(sdkInt)

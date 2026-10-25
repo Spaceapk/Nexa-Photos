@@ -75,10 +75,19 @@ fun NexaPhotosRoot(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Se piden solo los permisos que faltan: si el usuario ya concedió fotos, el diálogo vuelve a
+    // ofrecer videos (o el acceso parcial) sin repetir lo que ya está concedido.
+    val requestMissingPermissions: () -> Unit = {
+        val missing = galleryViewModel.missingPermissions()
+        permissionLauncher.launch(
+            if (missing.isNotEmpty()) missing else galleryViewModel.requiredPermissions()
+        )
+    }
+
     LaunchedEffect(state.needsPermission) {
         if (state.needsPermission && !autoRequested) {
             autoRequested = true
-            permissionLauncher.launch(galleryViewModel.requiredPermissions())
+            requestMissingPermissions()
         }
     }
 
@@ -90,7 +99,7 @@ fun NexaPhotosRoot(
         GalleryScreen(
             state = state,
             imageLoader = imageLoader,
-            onRequestPermission = { permissionLauncher.launch(galleryViewModel.requiredPermissions()) },
+            onRequestPermission = requestMissingPermissions,
             onSectionChange = galleryViewModel::setSection,
             onOpenAlbum = galleryViewModel::openAlbum,
             onCloseAlbum = galleryViewModel::closeAlbum,

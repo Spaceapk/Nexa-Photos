@@ -45,12 +45,19 @@ data class MediaItem(
     val isVideo: Boolean get() = type == MediaType.VIDEO
 }
 
-/** Álbum o carpeta derivada del `bucket` de MediaStore. */
+/**
+ * Álbum o carpeta derivada del `bucket` de MediaStore.
+ *
+ * @param itemCount número de elementos contados.
+ * @param countIsExact `false` cuando el conteo se hizo sobre una muestra (por ejemplo al alcanzar
+ *   el tope de escaneo): la UI debe mostrar "N+" en lugar de presentarlo como total exacto.
+ */
 data class MediaAlbum(
     val id: String,
     val name: String,
     val itemCount: Int,
-    val coverUri: String?
+    val coverUri: String?,
+    val countIsExact: Boolean = true
 )
 
 /** Conteo global de la biblioteca, útil para estados vacíos y encabezados. */

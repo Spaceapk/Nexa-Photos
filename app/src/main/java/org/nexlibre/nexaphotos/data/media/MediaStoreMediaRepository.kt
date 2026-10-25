@@ -55,7 +55,8 @@ class MediaStoreMediaRepository(
                     id = row.bucketId,
                     name = row.bucketName.ifBlank { DEFAULT_ALBUM_NAME },
                     itemCount = row.itemCount,
-                    coverUri = row.coverUri
+                    coverUri = row.coverUri,
+                    countIsExact = row.countIsExact
                 ) to row.latestDateMillis
             }
             .sortedWith(

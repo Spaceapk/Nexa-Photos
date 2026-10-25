@@ -70,6 +70,7 @@ class MediaStoreLiveSource(
             "${MediaStoreQueries.effectiveDateExpression} DESC"
         )?.use { cursor ->
             val buckets = LinkedHashMap<String, Bucket>()
+            val totalRows = cursor.count
             var scanned = 0
             while (cursor.moveToNext() && scanned < MAX_ALBUM_SCAN) {
                 scanned++
@@ -79,22 +80,27 @@ class MediaStoreLiveSource(
                     ?: DEFAULT_ALBUM_NAME
                 val existing = buckets[bucketId]
                 val coverUri = contentUriOf(cursor.longOrZero(MediaStoreQueries.COLUMN_ID))
-                val latest = cursor.longOrNull(MediaStoreQueries.COLUMN_DATE_TAKEN)
-                    ?.takeIf { it > 0L }
-                    ?: (cursor.longOrZero(MediaStoreQueries.COLUMN_DATE_ADDED) * 1000L)
+                val latest = MediaStoreQueries.normalizedDateFromColumns(
+                    dateTakenMillis = cursor.longOrNull(MediaStoreQueries.COLUMN_DATE_TAKEN),
+                    dateAddedSeconds = cursor.longOrNull(MediaStoreQueries.COLUMN_DATE_ADDED)
+                )
                 if (existing == null) {
                     buckets[bucketId] = Bucket(bucketId, bucketName, coverUri, latest)
                 } else {
                     existing.count++
                 }
             }
+            // Si el cursor tenía más filas que el tope de escaneo, los conteos son parciales:
+            // se marca explícitamente en lugar de presentarlos como totales.
+            val truncated = totalRows > MAX_ALBUM_SCAN || scanned >= MAX_ALBUM_SCAN
             buckets.values.map { bucket ->
                 RawAlbumRow(
                     bucketId = bucket.id,
                     bucketName = bucket.name,
                     itemCount = bucket.count,
                     coverUri = bucket.coverUri,
-                    latestDateMillis = bucket.latestDateMillis
+                    latestDateMillis = bucket.latestDateMillis,
+                    countIsExact = !truncated
                 )
             }
         } ?: emptyList()
@@ -142,11 +148,14 @@ class MediaStoreLiveSource(
     private fun Cursor.toRawRow(): RawMediaRow {
         val id = longOrZero(MediaStoreQueries.COLUMN_ID)
         val mediaTypeValue = intOrZero(MediaStoreQueries.COLUMN_MEDIA_TYPE)
-        val dateAddedSeconds = longOrZero(MediaStoreQueries.COLUMN_DATE_ADDED)
-        val dateAddedMillis = dateAddedSeconds * 1000L
-        val dateTaken = longOrNull(MediaStoreQueries.COLUMN_DATE_TAKEN)
-            ?.takeIf { it > 0L }
-            ?: dateAddedMillis
+        // Misma normalización que la expresión SQL de orden y cursor: datetaken nulo, cero o
+        // negativo cae a date_added, y date_added nunca es negativo.
+        val dateAddedMillis =
+            (longOrNull(MediaStoreQueries.COLUMN_DATE_ADDED) ?: 0L).coerceAtLeast(0L) * 1000L
+        val dateTaken = MediaStoreQueries.normalizedDateMillis(
+            dateTakenMillis = longOrNull(MediaStoreQueries.COLUMN_DATE_TAKEN),
+            dateAddedMillis = dateAddedMillis
+        )
 
         return RawMediaRow(
             contentUri = contentUriOf(id),

@@ -59,4 +59,8 @@ verificación en [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 ## Licencia
 
-Ver [`LICENSE`](LICENSE) (GPL-3.0).
+Nexa Photos se distribuye bajo la **Apache License 2.0** (ver [`LICENSE`](LICENSE)).
+
+Cualquier dependencia nueva debe ser compatible con Apache-2.0; no se admiten dependencias
+AGPL/SSPL ni código propietario. Las dependencias actuales y sus licencias están en
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).

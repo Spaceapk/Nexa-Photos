@@ -18,7 +18,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.nexlibre.nexaphotos.NexaPhotosApplication
 import org.nexlibre.nexaphotos.data.permissions.MediaAccess
+import org.nexlibre.nexaphotos.data.permissions.MediaAccessState
 import org.nexlibre.nexaphotos.data.permissions.MediaPermissionChecker
+import org.nexlibre.nexaphotos.data.permissions.MediaTypeAccess
 import org.nexlibre.nexaphotos.domain.model.MediaAlbum
 import org.nexlibre.nexaphotos.domain.model.MediaFilter
 import org.nexlibre.nexaphotos.domain.model.MediaItem
@@ -43,6 +45,8 @@ data class ViewerTarget(
 /** Estado completo de la pantalla de galería. */
 data class GalleryUiState(
     val access: MediaAccess = MediaAccess.NONE,
+    /** Acceso por tipo: un tipo puede estar completo y el otro solo con elementos elegidos. */
+    val typeAccess: MediaAccessState = MediaAccessState(),
     val readableTypes: Set<MediaType> = emptySet(),
     val section: GallerySection = GallerySection.TIMELINE,
     val items: List<MediaItem> = emptyList(),
@@ -59,7 +63,16 @@ data class GalleryUiState(
     val viewer: ViewerTarget? = null
 ) {
     val isSearchActive: Boolean get() = query.isNotBlank()
-    val hasPartialAccess: Boolean get() = access == MediaAccess.PARTIAL
+
+    /** Algún tipo solo tiene acceso a los elementos elegidos por el usuario. */
+    val hasPartialAccess: Boolean get() = typeAccess.hasPartialAccess
+
+    /** Tipos sin permiso: se explican en la UI en lugar de ocultarse en silencio. */
+    val missingTypes: Set<MediaType> get() = typeAccess.missingTypes
+
+    /** `true` si falta algún tipo (aunque la biblioteca visible no esté vacía). */
+    val hasMissingTypes: Boolean get() = missingTypes.isNotEmpty()
+
     val needsPermission: Boolean get() = readableTypes.isEmpty()
     val canLoadMore: Boolean get() = hasMore && !isLoading && !isLoadingMore && !isSearchActive
     val displayItems: List<MediaItem> get() = if (isSearchActive) searchResults else items
@@ -93,9 +106,15 @@ class GalleryViewModel(
 
     /** Relee permisos del sistema (llamar al conceder, denegar o volver al primer plano). */
     fun refreshPermissions() {
-        val access = permissionChecker.access()
-        val types = permissionChecker.readableTypes()
-        _state.update { it.copy(access = access, readableTypes = types) }
+        val typeAccess = permissionChecker.accessState()
+        _state.update {
+            it.copy(
+                access = typeAccess.overall,
+                typeAccess = typeAccess,
+                readableTypes = typeAccess.readableTypes
+            )
+        }
+        val types = typeAccess.readableTypes
         if (types.isEmpty()) {
             nextCursor = null
             _state.update {
@@ -272,6 +291,20 @@ class GalleryViewModel(
 
     /** Permisos que la UI debe solicitar en la versión de Android actual. */
     fun requiredPermissions(): Array<String> = permissionChecker.requiredPermissions()
+
+    /**
+     * Permisos que faltan ahora mismo: solo los tipos denegados o parciales, incluido
+     * `READ_MEDIA_VISUAL_USER_SELECTED` en Android 14+ para poder elegir más elementos.
+     */
+    fun missingPermissions(): Array<String> = permissionChecker.missingPermissions()
+
+    /** `true` si todavía se puede pedir más acceso (tipo ausente o acceso parcial). */
+    fun canRequestMoreAccess(): Boolean = _state.value.let { state ->
+        state.hasMissingTypes || state.hasPartialAccess
+    }
+
+    /** Acceso por tipo, para textos que expliquen qué falta. */
+    fun accessFor(type: MediaType): MediaTypeAccess = _state.value.typeAccess.forType(type)
 
     fun dismissError() {
         _state.update { it.copy(error = null) }

@@ -6,10 +6,20 @@ import org.nexlibre.nexaphotos.domain.model.MediaType
  * Construcción pura de selecciones y orden para `ContentResolver.query` sobre MediaStore.
  *
  * Los nombres de columna son los documentados por `MediaStore.Files.FileColumns`; se declaran
- * aquí como texto para que la lógica sea verificable en pruebas de JVM. La fecha efectiva es
- * `IFNULL(datetaken, date_added * 1000)`: `date_added` está siempre presente, mientras que
- * `datetaken` puede ser nulo (por ejemplo en algunos videos), y así el orden cronológico y el
- * cursor de paginación son coherentes para todas las filas.
+ * aquí como texto para que la lógica sea verificable en pruebas de JVM.
+ *
+ * **Fecha efectiva única.** El orden, el cursor de paginación y la fecha que se mapea a
+ * [org.nexlibre.nexaphotos.domain.model.MediaItem] usan exactamente la misma regla:
+ *
+ * ```
+ * datetaken > 0 ? datetaken : max(date_added, 0) * 1000
+ * ```
+ *
+ * En SQL: `IFNULL(NULLIF(MAX(datetaken, 0), 0), IFNULL(MAX(date_added, 0), 0) * 1000)`.
+ * `datetaken` puede ser nulo, cero o negativo (algunos videos y archivos importados), y
+ * `IFNULL(datetaken, ...)` por sí solo dejaba esos casos con fecha 0 o negativa en la consulta
+ * mientras el mapeo usaba `date_added`, lo que rompía la paginación (elementos repetidos u
+ * omitidos entre páginas). La función equivalente en Kotlin es [normalizedDateMillis].
  */
 object MediaStoreQueries {
 
@@ -34,8 +44,12 @@ object MediaStoreQueries {
 
     const val ESCAPE_CHAR = "\\"
 
-    /** Expresión SQL de fecha efectiva usada tanto para ordenar como para el cursor. */
-    val effectiveDateExpression: String = "IFNULL($COLUMN_DATE_TAKEN, $COLUMN_DATE_ADDED * 1000)"
+    /**
+     * Expresión SQL de fecha efectiva usada para ordenar, para el cursor y para agregar álbumes.
+     * Debe coincidir con [normalizedDateMillis] (hay pruebas que lo comprueban).
+     */
+    val effectiveDateExpression: String =
+        "IFNULL(NULLIF(MAX($COLUMN_DATE_TAKEN, 0), 0), IFNULL(MAX($COLUMN_DATE_ADDED, 0), 0) * 1000)"
 
     /** Orden cronológico descendente, con `_id` como desempate estable. */
     val sortOrder: String = "$effectiveDateExpression DESC, $COLUMN_ID DESC"
@@ -73,6 +87,40 @@ object MediaStoreQueries {
             .sorted()
         return "$COLUMN_MEDIA_TYPE IN (${values.joinToString(separator = ",")})"
     }
+
+    /**
+     * Fecha efectiva en Kotlin, idéntica a [effectiveDateExpression]:
+     * `datetaken` si es positivo; en cualquier otro caso (nulo, 0 o negativo) `date_added`
+     * convertido a milisegundos y recortado a cero.
+     *
+     * @param dateTakenMillis valor de `datetaken` tal cual lo devuelve MediaStore (o `null`).
+     * @param dateAddedMillis valor de `date_added` **ya convertido a milisegundos**.
+     */
+    fun normalizedDateMillis(dateTakenMillis: Long?, dateAddedMillis: Long): Long {
+        val added = dateAddedMillis.coerceAtLeast(0L)
+        return if (dateTakenMillis != null && dateTakenMillis > 0L) dateTakenMillis else added
+    }
+
+    /**
+     * Evalúa la expresión SQL sobre valores crudos de la base (`datetaken` en milisegundos,
+     * `date_added` en segundos). Se usa en pruebas y como referencia del mapeo real.
+     */
+    fun normalizedDateFromColumns(dateTakenMillis: Long?, dateAddedSeconds: Long?): Long {
+        val addedMillis = (dateAddedSeconds ?: 0L).coerceAtLeast(0L) * 1000L
+        return normalizedDateMillis(dateTakenMillis, addedMillis)
+    }
+
+    /**
+     * Predicado keyset equivalente a la cláusula SQL del cursor:
+     * `fecha < ? OR (fecha = ? AND _id < ?)`.
+     */
+    fun isStrictlyAfterCursor(cursor: MediaCursor, dateMillis: Long, id: Long): Boolean =
+        dateMillis < cursor.dateTakenMillis ||
+            (dateMillis == cursor.dateTakenMillis && id < cursor.id)
+
+    /** Comparador del orden `fecha DESC, _id DESC` (mismo criterio que [sortOrder]). */
+    val chronologicalDescending: Comparator<RawMediaRow> =
+        compareByDescending<RawMediaRow> { it.dateTakenMillis }.thenByDescending { uriId(it.contentUri) ?: 0L }
 
     /** Escapa comodines de `LIKE` para que la búsqueda sea literal. */
     fun escapeLike(term: String): String = term

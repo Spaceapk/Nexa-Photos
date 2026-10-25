@@ -1,7 +1,23 @@
-# Dependencias
+# Dependencias y licencias
+
+## Licencia del proyecto
+
+Nexa Photos se distribuye bajo la **Apache License 2.0** (texto completo en `LICENSE`). Es la
+licencia prevista para el proyecto desde su base.
+
+Reglas para futuras dependencias:
+
+- Deben ser compatibles con Apache-2.0 (Apache-2.0, MIT, BSD, ISC, EPL como dependencia de
+  pruebas, etc.).
+- **No se admiten** dependencias AGPL/SSPL/GPLv3 de producción ni código propietario: cambiarían
+  las obligaciones de distribución del proyecto.
+- Cualquier dependencia nueva debe justificarse en este documento con versión estable y licencia.
+
+## Dependencias
 
 Todas las dependencias son de código abierto, se resuelven desde `google()` y `mavenCentral()`
-y no requieren servicios de Google, cuentas ni claves. Ninguna añade permiso de red.
+y no requieren servicios de Google, cuentas ni claves. Ninguna añade permiso de red, y ninguna es
+AGPL.
 
 ## Base (0.1.0)
 
@@ -18,7 +34,7 @@ y no requieren servicios de Google, cuentas ni claves. Ninguna añade permiso de
 | `androidx.compose.material:material-icons-extended` | BOM | Apache-2.0 | Iconografía |
 | `androidx.room:room-runtime`, `room-ktx`, `room-compiler` | 2.6.1 | Apache-2.0 | Favoritos locales |
 | `androidx.datastore:datastore-preferences` | 1.1.1 | Apache-2.0 | Preferencias de apariencia |
-| `junit:junit` | 4.13.2 | EPL-1.0 | Pruebas unitarias (solo test) |
+| `junit:junit` | 4.13.2 | EPL-1.0 | Pruebas unitarias (solo test, no se distribuye en el APK) |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-test` | 1.9.0 | Apache-2.0 | Pruebas de coroutines (solo test) |
 | `androidx.test.ext:junit`, `espresso-core`, `ui-test-junit4` | 1.2.1 / 3.6.1 / BOM | Apache-2.0 | Pruebas instrumentadas (solo androidTest) |
 

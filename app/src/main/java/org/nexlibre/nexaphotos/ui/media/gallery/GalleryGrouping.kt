@@ -6,6 +6,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import org.nexlibre.nexaphotos.domain.model.MediaAlbum
 import org.nexlibre.nexaphotos.domain.model.MediaItem
 
 /** Grupo de elementos de un mismo día, ya ordenado cronológicamente de forma descendente. */
@@ -89,5 +90,25 @@ fun formatDuration(durationMillis: Long): String {
         String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format(Locale.US, "%d:%02d", minutes, seconds)
+    }
+}
+
+/**
+ * Conteo visible de un álbum. Cuando el conteo se hizo sobre una muestra (tope de escaneo) se
+ * muestra "N+" para no presentar un total incompleto como exacto.
+ */
+fun albumCountLabel(album: MediaAlbum): String {
+    val count = if (album.countIsExact) "${album.itemCount}" else "${album.itemCount}+"
+    val noun = if (album.itemCount == 1 && album.countIsExact) "elemento" else "elementos"
+    return "$count $noun"
+}
+
+/** Descripción para TalkBack del álbum, coherente con el conteo mostrado. */
+fun albumCountDescription(album: MediaAlbum): String {
+    val label = albumCountLabel(album)
+    return if (album.countIsExact) {
+        "${album.name}, $label"
+    } else {
+        "${album.name}, al menos $label"
     }
 }

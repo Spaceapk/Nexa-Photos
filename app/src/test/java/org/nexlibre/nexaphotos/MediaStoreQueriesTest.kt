@@ -2,6 +2,7 @@ package org.nexlibre.nexaphotos
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -98,10 +99,35 @@ class MediaStoreQueriesTest {
 
     @Test
     fun `el orden es cronologico descendente con desempate por id`() {
+        // La fecha efectiva descarta datetaken nulo, cero o negativo y recorta date_added a cero,
+        // igual que la normalización al mapear filas.
         assertEquals(
-            "IFNULL(datetaken, date_added * 1000) DESC, _id DESC",
+            "IFNULL(NULLIF(MAX(datetaken, 0), 0), IFNULL(MAX(date_added, 0), 0) * 1000) DESC, _id DESC",
             MediaStoreQueries.sortOrder
         )
-        assertEquals("IFNULL(datetaken, date_added * 1000)", MediaStoreQueries.effectiveDateExpression)
+        assertEquals(
+            "IFNULL(NULLIF(MAX(datetaken, 0), 0), IFNULL(MAX(date_added, 0), 0) * 1000)",
+            MediaStoreQueries.effectiveDateExpression
+        )
+    }
+
+    @Test
+    fun `la normalizacion de fechas cubre nulo cero y negativo`() {
+        assertEquals(5_000L, MediaStoreQueries.normalizedDateMillis(5_000L, 1_000L))
+        assertEquals(1_000L, MediaStoreQueries.normalizedDateMillis(null, 1_000L))
+        assertEquals(1_000L, MediaStoreQueries.normalizedDateMillis(0L, 1_000L))
+        assertEquals(1_000L, MediaStoreQueries.normalizedDateMillis(-1L, 1_000L))
+        assertEquals(0L, MediaStoreQueries.normalizedDateMillis(-1L, -1_000L))
+        assertEquals(0L, MediaStoreQueries.normalizedDateMillis(null, 0L))
+    }
+
+    @Test
+    fun `el predicado del cursor es estricto en fecha e id`() {
+        val cursor = MediaCursor(dateTakenMillis = 100L, id = 10L)
+        assertTrue(MediaStoreQueries.isStrictlyAfterCursor(cursor, dateMillis = 90L, id = 99L))
+        assertTrue(MediaStoreQueries.isStrictlyAfterCursor(cursor, dateMillis = 100L, id = 9L))
+        assertFalse(MediaStoreQueries.isStrictlyAfterCursor(cursor, dateMillis = 100L, id = 10L))
+        assertFalse(MediaStoreQueries.isStrictlyAfterCursor(cursor, dateMillis = 100L, id = 11L))
+        assertFalse(MediaStoreQueries.isStrictlyAfterCursor(cursor, dateMillis = 110L, id = 1L))
     }
 }

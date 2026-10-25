@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,6 +57,7 @@ import coil.ImageLoader
 import org.nexlibre.nexaphotos.data.permissions.MediaAccess
 import org.nexlibre.nexaphotos.domain.model.MediaAlbum
 import org.nexlibre.nexaphotos.domain.model.MediaItem
+import org.nexlibre.nexaphotos.domain.model.MediaType
 import org.nexlibre.nexaphotos.ui.theme.LocalNexaPhotosTokens
 
 /**
@@ -187,6 +189,7 @@ fun GalleryScreen(
                 else -> {
                     SectionChips(
                         section = state.section,
+                        readableTypes = state.readableTypes,
                         onSectionChange = onSectionChange
                     )
                     OutlinedTextField(
@@ -208,8 +211,15 @@ fun GalleryScreen(
                         }
                     )
 
-                    if (state.hasPartialAccess) {
-                        PartialAccessBanner(onRequestPermission = onRequestPermission)
+                    accessNotice(
+                        readableTypes = state.readableTypes,
+                        missingTypes = state.missingTypes,
+                        partialTypes = state.typeAccess.partialTypes
+                    )?.let { notice ->
+                        AccessNoticeBanner(
+                            notice = notice,
+                            onAction = onRequestPermission
+                        )
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
@@ -230,6 +240,7 @@ fun GalleryScreen(
                             state.displayItems.isEmpty() -> EmptyState(
                                 isSearch = state.isSearchActive,
                                 section = state.section,
+                                title = emptyLibraryMessage(state.readableTypes, state.missingTypes),
                                 modifier = Modifier.align(Alignment.Center)
                             )
 
@@ -252,6 +263,7 @@ fun GalleryScreen(
 @Composable
 private fun SectionChips(
     section: GallerySection,
+    readableTypes: Set<MediaType>,
     onSectionChange: (GallerySection) -> Unit
 ) {
     // Desplazable en horizontal: con texto al 200 % las etiquetas no se recortan ni se apilan.
@@ -269,7 +281,7 @@ private fun SectionChips(
                 label = {
                     Text(
                         when (entry) {
-                            GallerySection.TIMELINE -> "Fotos y videos"
+                            GallerySection.TIMELINE -> timelineLabel(readableTypes)
                             GallerySection.ALBUMS -> "Álbumes"
                             GallerySection.FAVORITES -> "Favoritos"
                         }
@@ -332,25 +344,28 @@ private fun PermissionContent(
 }
 
 @Composable
-private fun PartialAccessBanner(onRequestPermission: () -> Unit) {
+private fun AccessNoticeBanner(
+    notice: AccessNotice,
+    onAction: () -> Unit
+) {
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = "Acceso parcial: solo ves los elementos que elegiste.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onRequestPermission) {
-                Text("Ampliar")
+            Text(text = notice.message, style = MaterialTheme.typography.bodySmall)
+            TextButton(
+                onClick = onAction,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(notice.actionLabel)
             }
         }
     }
@@ -360,6 +375,7 @@ private fun PartialAccessBanner(onRequestPermission: () -> Unit) {
 private fun EmptyState(
     isSearch: Boolean,
     section: GallerySection,
+    title: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -377,7 +393,7 @@ private fun EmptyState(
                 text = when {
                     isSearch -> "Sin resultados"
                     section == GallerySection.FAVORITES -> "Todavía no hay favoritos"
-                    else -> "No hay fotos ni videos"
+                    else -> title
                 },
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
